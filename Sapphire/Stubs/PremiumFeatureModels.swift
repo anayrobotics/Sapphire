@@ -9,17 +9,6 @@ import AppKit
 import Combine
 import Foundation
 
-enum CaretPositionTracker {
-    struct CaretInfo {
-        let anchorPoint: NSPoint
-        let lineNumber: Int?
-        let isExact: Bool
-    }
-
-    static func caretInfo() -> CaretInfo? { nil }
-    static func anchorPoint() -> NSPoint? { nil }
-}
-
 @MainActor
 final class WiFiStatusMonitor: ObservableObject {
     struct State: Equatable {
@@ -51,30 +40,6 @@ final class DMGInstallerManager: ObservableObject {
 struct DockLayout: Codable, Equatable, Identifiable {
     var id: UUID = UUID()
     var name: String = "New Preset"
-}
-
-struct SnippetEntry: Codable, Equatable, Identifiable {
-    var id: UUID = UUID()
-    var trigger: String = ""
-    var replacement: String = ""
-    var isEnabled: Bool = true
-}
-
-enum EmojiSkinTone: String, Codable, CaseIterable, Identifiable {
-    case none, light, mediumLight, medium, mediumDark, dark
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .none: "Default"
-        case .light: "Light"
-        case .mediumLight: "Medium Light"
-        case .medium: "Medium"
-        case .mediumDark: "Medium Dark"
-        case .dark: "Dark"
-        }
-    }
 }
 
 enum MouseButtonAction: String, Codable, CaseIterable, Identifiable {

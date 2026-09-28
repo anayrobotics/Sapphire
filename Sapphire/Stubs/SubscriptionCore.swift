@@ -40,10 +40,11 @@ public struct SubscriptionEntitlements: Codable, Equatable {
     public var expiresAt: Date?
 
     public static let free = SubscriptionEntitlements(tier: .free, features: [], expiresAt: nil)
+    public static let unlocked = SubscriptionEntitlements(tier: .ultra, features: SubscriptionAccess.unlockedFeatures, expiresAt: nil)
 }
 
 public enum SubscriptionFeatureCatalog {
-    public static func features(for tier: SubscriptionTier) -> Set<AppFeature> { [] }
+    public static func features(for tier: SubscriptionTier) -> Set<AppFeature> { SubscriptionAccess.unlockedFeatures }
     public static func minimumTier(for feature: AppFeature) -> SubscriptionTier { .free }
     public static func tierDisplayName(_ tier: SubscriptionTier) -> String { tier.rawValue.capitalized }
     public static func marketingSubtitle(for tier: SubscriptionTier) -> String { "Includes the core Sapphire experience." }
@@ -58,33 +59,36 @@ public enum SubscriptionFeatureCatalog {
 }
 
 public enum SubscriptionAccess {
-    public static func hasAccess(to feature: AppFeature) -> Bool { false }
-    public static func resolvedTier() -> SubscriptionTier { .free }
-    public static func intelligenceDailyRunLimit() -> Int { 8 }
+    // Beta builds come from the upstream developer's paid update channel and would replace this build.
+    public static let unlockedFeatures = Set(AppFeature.allCases).subtracting([.betaSoftwareUpdates])
+
+    public static func hasAccess(to feature: AppFeature) -> Bool { unlockedFeatures.contains(feature) }
+    public static func resolvedTier() -> SubscriptionTier { .ultra }
+    public static func intelligenceDailyRunLimit() -> Int { .max }
 }
 
 public final class SubscriptionManager: ObservableObject {
     public static let shared = SubscriptionManager()
 
     public var tierGradientColors: [Color] { [.gray, .gray.opacity(0.6)] }
-    public var userInitials: String { "G" }
-    public var tierLabel: String { "Free" }
+    public var userInitials: String { "S" }
+    public var tierLabel: String { "Unlocked" }
 
-    @Published public private(set) var entitlements: SubscriptionEntitlements = .free
-    @Published public private(set) var accessibleFeatures: Set<AppFeature> = []
+    @Published public private(set) var entitlements: SubscriptionEntitlements = .unlocked
+    @Published public private(set) var accessibleFeatures: Set<AppFeature> = SubscriptionAccess.unlockedFeatures
 
     public init() {}
 
     public var activeTier: SubscriptionTier { entitlements.tier }
     public var hasCorePlan: Bool { activeTier == .core }
     public var isSignedIn: Bool { false }
-    public var userDisplayName: String { "Guest" }
+    public var userDisplayName: String { "Local Build" }
     public var hasBetaSoftwareAccess: Bool { false }
 
     public func hasAccess(to feature: AppFeature) -> Bool { SubscriptionAccess.hasAccess(to: feature) }
     public func isFeatureEnabled(_ feature: AppFeature) -> Bool { SubscriptionAccess.hasAccess(to: feature) }
     public func applyLicensedTier(_ tier: SubscriptionTier) {}
-    public func intelligenceDailyRunLimit() -> Int { 8 }
+    public func intelligenceDailyRunLimit() -> Int { SubscriptionAccess.intelligenceDailyRunLimit() }
     public func bootstrap() async {}
     public func validateSubscriptionStatus() async {}
 }
@@ -96,6 +100,7 @@ public final class FeatureGate {
 
     @discardableResult
     public func require(_ feature: AppFeature, message: String) -> Bool {
+        if SubscriptionAccess.hasAccess(to: feature) { return true }
         let post = {
             NotificationCenter.default.post(
                 name: .subscriptionPaywallRequested,

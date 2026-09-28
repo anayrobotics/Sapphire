@@ -40,7 +40,11 @@ struct PremiumFeatureView<Content: View>: View {
     }
 
     var body: some View {
-        content.disabled(true).opacity(0.45)
+        if PremiumGate.hasAccess(feature) {
+            content
+        } else {
+            content.disabled(true).opacity(0.45)
+        }
     }
 }
 
